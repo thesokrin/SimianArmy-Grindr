@@ -30,6 +30,7 @@ import com.netflix.simianarmy.janitor.JanitorEmailNotifier;
 import com.netflix.simianarmy.janitor.JanitorMonkey;
 import com.netflix.simianarmy.janitor.JanitorResourceTracker;
 import org.apache.commons.lang.StringUtils;
+//import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -125,7 +126,8 @@ public class BasicJanitorMonkey extends JanitorMonkey {
             if (!cfg.getBoolOrElse("simianarmy.janitor.leashed", true)) {
                 emailNotifier.sendNotifications();
             } else {
-                LOGGER.info("Janitor Monkey is leashed, no notification is sent.");
+//                LOGGER.info("Janitor Monkey is leashed BUT OVERRIDDEN, notification IS sent.");
+		LOGGER.info("Janitor Monkey is leashed, no notification is sent.");
             }
 
             LOGGER.info(String.format("Cleaning resources with %d janitors.", janitors.size()));
@@ -200,13 +202,13 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 return;
             }
             StringBuilder message = new StringBuilder();
+	message.append(String.format("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>"));
             for (AbstractJanitor janitor : janitors) {
                 ResourceType resourceType = janitor.getResourceType();
-                appendSummary(message, "markings", resourceType, janitor.getMarkedResources(), janitor.getRegion());
-                appendSummary(message, "unmarkings", resourceType, janitor.getUnmarkedResources(), janitor.getRegion());
-                appendSummary(message, "cleanups", resourceType, janitor.getCleanedResources(), janitor.getRegion());
-                appendSummary(message, "cleanup failures", resourceType, janitor.getFailedToCleanResources(),
-                        janitor.getRegion());
+                appendSummary(message, "<font color='blue'>markings</font>", resourceType, janitor.getMarkedResources(), janitor.getRegion());
+                appendSummary(message, "<font color='orange'>unmarkings</font>", resourceType, janitor.getUnmarkedResources(), janitor.getRegion());
+                appendSummary(message, "<font color='green'>cleanups</font>", resourceType, janitor.getCleanedResources(), janitor.getRegion());
+                appendSummary(message, "<font color='red'>cleanup failures</font>", resourceType, janitor.getFailedToCleanResources(), janitor.getRegion());
             }
             String subject = getSummaryEmailSubject();
             emailNotifier.sendEmail(summaryEmailTarget, subject, message.toString());
@@ -215,22 +217,42 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 
     private void appendSummary(StringBuilder message, String summaryName,
             ResourceType resourceType, Collection<Resource> resources, String janitorRegion) {
-        message.append(String.format("Total %s for %s = %d in region %s<br/>",
+        message.append(String.format("<h3>Total %s for %s = <b>%d</b> in region %s</h3>",
                 summaryName, resourceType.name(), resources.size(), janitorRegion));
-        message.append(String.format("List: %s<br/>", printResources(resources)));
+//        message.append(String.format("<b><h4><u>List</u>:</h4> %s</b><br/>", printResources(resources)));
+        message.append(String.format("<table border='2' cellpadding='4'><tr><td bgcolor='grey'>Resource ID</td><td bgcolor='grey'>Name</td><td bgcolor='grey'>atlas_owner</td><td bgcolor='grey'>atlas_owner + @grindr.com</td><td bgcolor='grey'>atlas_environment</td><td bgcolor='grey'>atlas_zone</td></tr>%s", printResources(resources)));
     }
 
     private String printResources(Collection<Resource> resources) {
         StringBuilder sb = new StringBuilder();
-        boolean isFirst = true;
-        for (Resource r : resources) {
-            if (!isFirst) {
-                sb.append(",");
-            } else {
-                isFirst = false;
-            }
-            sb.append(r.getId());
-        }
+//        boolean isFirst = true;
+
+//	if (CollectionUtils.isEmpty(resources)) {
+//	if (!Resource r : resources) {
+
+	if (resources != null && resources.size() != 0) {
+	        for (Resource r : resources) {
+//        	    if (!isFirst) {
+//	                sb.append("</tr>");
+//	            } else {
+//	                isFirst = false;
+//	            }
+	            sb.append("<tr><td>"+r.getId()+"</td>");
+	            sb.append("<td>"+r.getTag("Name")+"</td>");
+	            sb.append("<td>"+r.getTag("atlas_owner")+"</td>");
+//	            sb.append("<td>"+r.getTag("ownerEmail")+"</td>");
+		    if (r.getTag("atlas_owner") != null) {
+	            	sb.append("<td>"+r.getTag("atlas_owner")+"@grindr.com</td>");
+		    } else {
+		    	sb.append("<td><font color='red'>Invalid</font></td>");
+		    }
+	            sb.append("<td>"+r.getTag("atlas_environment")+"</td>");
+	            sb.append("<td>"+r.getTag("atlas_zone")+"</td></tr>");
+	        }
+	} else {
+		sb.append("-- No resources to list --");
+	}
+	sb.append("</table>");
         return sb.toString();
     }
 
@@ -264,8 +286,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
         }
         LOGGER.info("JanitorMonkey disabled, set {}=true", prop);
         return false;
-    }
-    
+    }    
     @Monitor(name="runs", type=DataSourceType.COUNTER)
     public long getMonkeyRuns() {
       return monkeyRuns.get();
