@@ -33,6 +33,9 @@ import org.apache.commons.lang.StringUtils;
 //import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.opencsv.CSVWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 
 /** The basic implementation of Janitor Monkey. */
 public class BasicJanitorMonkey extends JanitorMonkey {
@@ -126,7 +129,6 @@ public class BasicJanitorMonkey extends JanitorMonkey {
             if (!cfg.getBoolOrElse("simianarmy.janitor.leashed", true)) {
                 emailNotifier.sendNotifications();
             } else {
-//                LOGGER.info("Janitor Monkey is leashed BUT OVERRIDDEN, notification IS sent.");
 		LOGGER.info("Janitor Monkey is leashed, no notification is sent.");
             }
 
@@ -144,6 +146,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                         janitor.getFailedToCleanResources().size(), janitor.getResourceType()));
             }
             if (cfg.getBoolOrElse(NS + "summaryEmail.enabled", true)) {
+	    	LOGGER.info("Janitor Monkey is generating a summary email....");
                 sendJanitorSummaryEmail();
             }
         	monkeyRunning.set(0);
@@ -202,28 +205,46 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 return;
             }
             StringBuilder message = new StringBuilder();
-	message.append(String.format("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>"));
+            message.append(String.format("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>"));
             for (AbstractJanitor janitor : janitors) {
                 ResourceType resourceType = janitor.getResourceType();
-                appendSummary(message, "<font color='blue'>markings</font>", resourceType, janitor.getMarkedResources(), janitor.getRegion());
-                appendSummary(message, "<font color='orange'>unmarkings</font>", resourceType, janitor.getUnmarkedResources(), janitor.getRegion());
-                appendSummary(message, "<font color='green'>cleanups</font>", resourceType, janitor.getCleanedResources(), janitor.getRegion());
-                appendSummary(message, "<font color='red'>cleanup failures</font>", resourceType, janitor.getFailedToCleanResources(), janitor.getRegion());
+                appendSummary(message, "markings", resourceType, janitor.getMarkedResources(), janitor.getRegion(), "blue");
+                appendSummary(message, "unmarkings", resourceType, janitor.getUnmarkedResources(), janitor.getRegion(), "orange");
+                appendSummary(message, "cleanups", resourceType, janitor.getCleanedResources(), janitor.getRegion(), "green");
+                appendSummary(message, "failures", resourceType, janitor.getFailedToCleanResources(), janitor.getRegion(), "red");
             }
             String subject = getSummaryEmailSubject();
             emailNotifier.sendEmail(summaryEmailTarget, subject, message.toString());
         }
     }
 
+//	private void generateCSV(Collection<Resource> resources) {
+//		CSVWriter writer = new CSVWriter(new FileWriter("janitormonkey-grindr-preprod.csv"), ',');
+//
+//		if (resources != null && resources.size() != 0) {
+//		        for (Resource r : resources) {
+//
+//		String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),
+//			r.getTag("atlas_environment"),r.getTag("atlas_zone")};
+//			writer.writeNext(resourceData);
+//			}
+//		}
+//	}
+
     private void appendSummary(StringBuilder message, String summaryName,
-            ResourceType resourceType, Collection<Resource> resources, String janitorRegion) {
-        message.append(String.format("<h3>Total %s for %s = <b>%d</b> in region %s</h3>",
-                summaryName, resourceType.name(), resources.size(), janitorRegion));
-//        message.append(String.format("<b><h4><u>List</u>:</h4> %s</b><br/>", printResources(resources)));
-        message.append(String.format("<table border='2' cellpadding='4'><tr><td bgcolor='grey'>Resource ID</td><td bgcolor='grey'>Name</td><td bgcolor='grey'>atlas_owner</td><td bgcolor='grey'>atlas_owner + @grindr.com</td><td bgcolor='grey'>atlas_environment</td><td bgcolor='grey'>atlas_zone</td></tr>%s", printResources(resources)));
+	        ResourceType resourceType, Collection<Resource> resources, String janitorRegion, String color) {
+	        message.append(String.format("<h3>Total <font color='%s'>%s</font> for %s = <b>%d</b> in region %s</h3>",
+                color, summaryName, resourceType.name(), resources.size(), janitorRegion));
+//	        message.append(String.format("<b><h4><u>List</u>:</h4> %s</b><br/>", printResources(resources)));
+		CSVWriter writer = null;
+		try {
+			writer = new CSVWriter(new FileWriter(summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
+		} catch (IOException ioexception) { ioexception.printStackTrace(); System.exit(1); }
+//       	generateCSV(resources);
+		message.append(String.format("<table border='2' cellpadding='4'><tr><td bgcolor='grey'>Resource ID</td><td bgcolor='grey'>Name</td><td bgcolor='grey'>atlas_owner</td><td bgcolor='grey'>atlas_owner + @grindr.com</td><td bgcolor='grey'>atlas_environment</td><td bgcolor='grey'>atlas_zone</td></tr>%s", printResources(resources, writer)));
     }
 
-    private String printResources(Collection<Resource> resources) {
+    private String printResources(Collection<Resource> resources, CSVWriter writer) {
         StringBuilder sb = new StringBuilder();
 //        boolean isFirst = true;
 
@@ -248,9 +269,18 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		    }
 	            sb.append("<td>"+r.getTag("atlas_environment")+"</td>");
 	            sb.append("<td>"+r.getTag("atlas_zone")+"</td></tr>");
+
+		String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),
+			r.getTag("atlas_environment"),r.getTag("atlas_zone")};
+			writer.writeNext(resourceData);
 	        }
 	} else {
 		sb.append("-- No resources to list --");
+	}
+	try {
+		writer.close();
+	} catch (IOException ioexception) {
+		ioexception.printStackTrace(); System.exit(1); 
 	}
 	sb.append("</table>");
         return sb.toString();
@@ -301,5 +331,4 @@ public class BasicJanitorMonkey extends JanitorMonkey {
     public long getMonkeyRunning() {
       return monkeyRunning.get();
     }
-    
 }
