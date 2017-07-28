@@ -236,6 +236,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 	        message.append(String.format("<h3>Total <font color='%s'>%s</font> for %s = <b>%d</b> in region %s</h3>",
                 color, summaryName, resourceType.name(), resources.size(), janitorRegion));
 //	        message.append(String.format("<b><h4><u>List</u>:</h4> %s</b><br/>", printResources(resources)));
+//		String[] resourceData = null;
 		CSVWriter writer = null;
 		try {
 			writer = new CSVWriter(new FileWriter(summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
@@ -250,6 +251,9 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 
 //	if (CollectionUtils.isEmpty(resources)) {
 //	if (!Resource r : resources) {
+
+	String[] resourceData = {"resource id","name","atlas_owner","atlas_environment","atlas_zone"};
+	writer.writeNext(resourceData);
 
 	if (resources != null && resources.size() != 0) {
 	        for (Resource r : resources) {
@@ -270,9 +274,8 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 	            sb.append("<td>"+r.getTag("atlas_environment")+"</td>");
 	            sb.append("<td>"+r.getTag("atlas_zone")+"</td></tr>");
 
-		String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),
-			r.getTag("atlas_environment"),r.getTag("atlas_zone")};
-			writer.writeNext(resourceData);
+	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),r.getTag("atlas_environment"),r.getTag("atlas_zone")};
+		    writer.writeNext(resourceData);
 	        }
 	} else {
 		sb.append("-- No resources to list --");
