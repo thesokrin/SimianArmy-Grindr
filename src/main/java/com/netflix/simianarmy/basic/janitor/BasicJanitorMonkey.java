@@ -239,7 +239,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 //		String[] resourceData = null;
 		CSVWriter writer = null;
 		try {
-			writer = new CSVWriter(new FileWriter(summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
+			writer = new CSVWriter(new FileWriter("csv/" + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
 		} catch (IOException ioexception) { ioexception.printStackTrace(); System.exit(1); }
 //       	generateCSV(resources);
 		message.append(String.format("<table border='2' cellpadding='4'><tr><td bgcolor='grey'>Resource ID</td><td bgcolor='grey'>Name</td><td bgcolor='grey'>atlas_owner</td><td bgcolor='grey'>atlas_owner + @grindr.com</td><td bgcolor='grey'>atlas_environment</td><td bgcolor='grey'>atlas_zone</td></tr>%s", printResources(resources, writer)));
@@ -252,8 +252,8 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 //	if (CollectionUtils.isEmpty(resources)) {
 //	if (!Resource r : resources) {
 
-	String[] resourceData = {"resource id","name","atlas_owner","atlas_environment","atlas_zone"};
-	writer.writeNext(resourceData);
+	String[] resourceDataHeader = {"resource id","name","atlas_owner","atlas_environment","atlas_zone"};
+	writer.writeNext(resourceDataHeader);
 
 	if (resources != null && resources.size() != 0) {
 	        for (Resource r : resources) {

@@ -23,6 +23,7 @@
 # Logs and databases #
 ######################
 *.log
+*.csv
 
 # OS generated files #
 ######################
