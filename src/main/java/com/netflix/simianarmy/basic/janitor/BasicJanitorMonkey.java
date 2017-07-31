@@ -205,9 +205,11 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 return;
             }
             StringBuilder message = new StringBuilder();
+		// Header title and logo
             message.append(String.format("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>"));
             for (AbstractJanitor janitor : janitors) {
                 ResourceType resourceType = janitor.getResourceType();
+		// four horse men monkeys
                 appendSummary(message, "markings", resourceType, janitor.getMarkedResources(), janitor.getRegion(), "blue");
                 appendSummary(message, "unmarkings", resourceType, janitor.getUnmarkedResources(), janitor.getRegion(), "orange");
                 appendSummary(message, "cleanups", resourceType, janitor.getCleanedResources(), janitor.getRegion(), "green");
@@ -217,6 +219,8 @@ public class BasicJanitorMonkey extends JanitorMonkey {
             emailNotifier.sendEmail(summaryEmailTarget, subject, message.toString());
         }
     }
+
+// sample code for the CSV generation, already integrated into the functions to generate the summary emails but left for reference
 
 //	private void generateCSV(Collection<Resource> resources) {
 //		CSVWriter writer = new CSVWriter(new FileWriter("janitormonkey-grindr-preprod.csv"), ',');
@@ -252,6 +256,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 //	if (CollectionUtils.isEmpty(resources)) {
 //	if (!Resource r : resources) {
 
+// CSV file header
 	String[] resourceDataHeader = {"resource id","name","atlas_owner","atlas_environment","atlas_zone"};
 	writer.writeNext(resourceDataHeader);
 
@@ -262,6 +267,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 //	            } else {
 //	                isFirst = false;
 //	            }
+// table generation
 	            sb.append("<tr><td>"+r.getId()+"</td>");
 	            sb.append("<td>"+r.getTag("Name")+"</td>");
 	            sb.append("<td>"+r.getTag("atlas_owner")+"</td>");
@@ -273,7 +279,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		    }
 	            sb.append("<td>"+r.getTag("atlas_environment")+"</td>");
 	            sb.append("<td>"+r.getTag("atlas_zone")+"</td></tr>");
-
+// CSV body generation
 	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),r.getTag("atlas_environment"),r.getTag("atlas_zone")};
 		    writer.writeNext(resourceData);
 	        }
@@ -281,6 +287,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		sb.append("-- No resources to list --");
 	}
 	try {
+// pack 'er up!
 		writer.close();
 	} catch (IOException ioexception) {
 		ioexception.printStackTrace(); System.exit(1); 
