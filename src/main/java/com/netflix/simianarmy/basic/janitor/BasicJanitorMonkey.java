@@ -30,7 +30,6 @@ import com.netflix.simianarmy.janitor.JanitorEmailNotifier;
 import com.netflix.simianarmy.janitor.JanitorMonkey;
 import com.netflix.simianarmy.janitor.JanitorResourceTracker;
 import org.apache.commons.lang.StringUtils;
-//import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.opencsv.CSVWriter;
@@ -205,11 +204,11 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 return;
             }
             StringBuilder message = new StringBuilder();
-		// Header title and logo
+            // Header title and logo
             message.append(String.format("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>"));
             for (AbstractJanitor janitor : janitors) {
                 ResourceType resourceType = janitor.getResourceType();
-		// four horse men monkeys
+		// the four horsemen. runs once for each resource (currently 4) totaling 16 tables/csv files WOAH!
                 appendSummary(message, "markings", resourceType, janitor.getMarkedResources(), janitor.getRegion(), "blue");
                 appendSummary(message, "unmarkings", resourceType, janitor.getUnmarkedResources(), janitor.getRegion(), "orange");
                 appendSummary(message, "cleanups", resourceType, janitor.getCleanedResources(), janitor.getRegion(), "green");
@@ -220,7 +219,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
         }
     }
 
-// sample code for the CSV generation, already integrated into the functions to generate the summary emails but left for reference
+// SOON TO REMOVE! sample code for the CSV generation, already integrated into the functions to generate the summary emails but left for reference
 
 //	private void generateCSV(Collection<Resource> resources) {
 //		CSVWriter writer = new CSVWriter(new FileWriter("janitormonkey-grindr-preprod.csv"), ',');
@@ -245,8 +244,16 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		try {
 			writer = new CSVWriter(new FileWriter("csv/" + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
 		} catch (IOException ioexception) { ioexception.printStackTrace(); System.exit(1); }
-//       	generateCSV(resources);
+		// CSV file header
+		String[] resourceDataHeader = {"resource id","name","atlas_owner","atlas_environment","atlas_zone"};
+		writer.writeNext(resourceDataHeader);
 		message.append(String.format("<table border='2' cellpadding='4'><tr><td bgcolor='grey'>Resource ID</td><td bgcolor='grey'>Name</td><td bgcolor='grey'>atlas_owner</td><td bgcolor='grey'>atlas_owner + @grindr.com</td><td bgcolor='grey'>atlas_environment</td><td bgcolor='grey'>atlas_zone</td></tr>%s", printResources(resources, writer)));
+
+// put column names into an array. loop that array to generate the headers for the table AND csv in One Fell Swoop
+
+// hi matt. this is matt from yesterday. buckle up. also, google the api syntax/versions
+
+
     }
 
     private String printResources(Collection<Resource> resources, CSVWriter writer) {
@@ -256,9 +263,10 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 //	if (CollectionUtils.isEmpty(resources)) {
 //	if (!Resource r : resources) {
 
-// CSV file header
-	String[] resourceDataHeader = {"resource id","name","atlas_owner","atlas_environment","atlas_zone"};
-	writer.writeNext(resourceDataHeader);
+// el moveo upways
+//	// CSV file header
+//	String[] resourceDataHeader = {"resource id","name","atlas_owner","atlas_environment","atlas_zone"};
+//	writer.writeNext(resourceDataHeader);
 
 	if (resources != null && resources.size() != 0) {
 	        for (Resource r : resources) {
@@ -270,8 +278,8 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 // table generation
 	            sb.append("<tr><td>"+r.getId()+"</td>");
 	            sb.append("<td>"+r.getTag("Name")+"</td>");
-	            sb.append("<td>"+r.getTag("atlas_owner")+"</td>");
-//	            sb.append("<td>"+r.getTag("ownerEmail")+"</td>");
+// REALCODE	            sb.append("<td>"+r.getTag("atlas_owner")+"</td>");
+	            sb.append("<td>"+r.getAdditionalField("ASG_NAME")+"</td>");
 		    if (r.getTag("atlas_owner") != null) {
 	            	sb.append("<td>"+r.getTag("atlas_owner")+"@grindr.com</td>");
 		    } else {
