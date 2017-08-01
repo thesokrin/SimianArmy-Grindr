@@ -238,58 +238,57 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 	        ResourceType resourceType, Collection<Resource> resources, String janitorRegion, String color) {
 	        message.append(String.format("<h3>Total <font color='%s'>%s</font> for %s = <b>%d</b> in region %s</h3>",
                 color, summaryName, resourceType.name(), resources.size(), janitorRegion));
-//	        message.append(String.format("<b><h4><u>List</u>:</h4> %s</b><br/>", printResources(resources)));
-//		String[] resourceData = null;
 		CSVWriter writer = null;
 		try {
 			writer = new CSVWriter(new FileWriter("csv/" + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
 		} catch (IOException ioexception) { ioexception.printStackTrace(); System.exit(1); }
-		// CSV file header
-		String[] resourceDataHeader = {"resource id","name","atlas_owner","atlas_environment","atlas_zone"};
+		// CSV file header generation
+
+		String[] resourceDataHeader = {"Resource ID","name","atlas_owner","atlas_email","atlas_environment","Atlas Zone"};
 		writer.writeNext(resourceDataHeader);
-		message.append(String.format("<table border='2' cellpadding='4'><tr><td bgcolor='grey'>Resource ID</td><td bgcolor='grey'>Name</td><td bgcolor='grey'>atlas_owner</td><td bgcolor='grey'>atlas_owner + @grindr.com</td><td bgcolor='grey'>atlas_environment</td><td bgcolor='grey'>atlas_zone</td></tr>%s", printResources(resources, writer)));
 
-// put column names into an array. loop that array to generate the headers for the table AND csv in One Fell Swoop
+		message.append("<table border='2' cellpadding='4'><tr>");
 
-// hi matt. this is matt from yesterday. buckle up. also, google the api syntax/versions
-
-
+	    	for (String resource : resourceDataHeader) {
+			message.append(String.format("<td bgcolor='grey'>%s</td>", resource));
+		}
+		message.append(String.format("</tr>%s", printResources(resources, writer)));
     }
 
     private String printResources(Collection<Resource> resources, CSVWriter writer) {
         StringBuilder sb = new StringBuilder();
-//        boolean isFirst = true;
-
-//	if (CollectionUtils.isEmpty(resources)) {
-//	if (!Resource r : resources) {
-
-// el moveo upways
-//	// CSV file header
-//	String[] resourceDataHeader = {"resource id","name","atlas_owner","atlas_environment","atlas_zone"};
-//	writer.writeNext(resourceDataHeader);
 
 	if (resources != null && resources.size() != 0) {
 	        for (Resource r : resources) {
-//        	    if (!isFirst) {
-//	                sb.append("</tr>");
-//	            } else {
-//	                isFirst = false;
-//	            }
-// table generation
-	            sb.append("<tr><td>"+r.getId()+"</td>");
-	            sb.append("<td>"+r.getTag("Name")+"</td>");
-// REALCODE	            sb.append("<td>"+r.getTag("atlas_owner")+"</td>");
-	            sb.append("<td>"+r.getAdditionalField("ASG_NAME")+"</td>");
-		    if (r.getTag("atlas_owner") != null) {
-	            	sb.append("<td>"+r.getTag("atlas_owner")+"@grindr.com</td>");
-		    } else {
-		    	sb.append("<td><font color='red'>Invalid</font></td>");
-		    }
-	            sb.append("<td>"+r.getTag("atlas_environment")+"</td>");
-	            sb.append("<td>"+r.getTag("atlas_zone")+"</td></tr>");
-// CSV body generation
-	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),r.getTag("atlas_environment"),r.getTag("atlas_zone")};
+
+	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),
+			r.getTag("atlas_owner")+"@grindr.com",r.getTag("atlas_environment"),r.getTag("atlas_zone")};
 		    writer.writeNext(resourceData);
+
+		    sb.append("<tr>");
+		    for (String resource : resourceData) {
+			sb.append("<td>"+resource+"</td>");
+		    }
+		    sb.append("</tr>");
+
+		    // table generation
+//	            sb.append("<tr><td>"+r.getId()+"</td>");
+//	            sb.append("<td>"+r.getTag("Name")+"</td>");
+//	            sb.append("<td>"+r.getTag("atlas_owner")+"</td>");
+// TEST	            sb.append("<td>"+r.getAdditionalField("ASG_NAME")+"</td>");
+//		    if (r.getTag("atlas_owner") != null) {
+//	            	sb.append("<td>"+r.getTag("atlas_owner")+"@grindr.com</td>");
+//		    } else {
+//		    	sb.append("<td><font color='red'>Invalid</font></td>");
+//		    }
+//	            sb.append("<td>"+r.getTag("atlas_environment")+"</td>");
+//	            sb.append("<td>"+r.getTag("atlas_zone")+"</td></tr>");
+
+
+
+
+		    // CSV body generation
+//	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),r.getTag("atlas_environment"),r.getTag("atlas_zone")};
 	        }
 	} else {
 		sb.append("-- No resources to list --");
