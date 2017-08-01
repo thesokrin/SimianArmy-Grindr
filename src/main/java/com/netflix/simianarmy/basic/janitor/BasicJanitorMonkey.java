@@ -204,11 +204,9 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 return;
             }
             StringBuilder message = new StringBuilder();
-            // Header title and logo
             message.append(String.format("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>"));
             for (AbstractJanitor janitor : janitors) {
                 ResourceType resourceType = janitor.getResourceType();
-		// the four horsemen. runs once for each resource (currently 4) totaling 16 tables/csv files WOAH!
                 appendSummary(message, "markings", resourceType, janitor.getMarkedResources(), janitor.getRegion(), "blue");
                 appendSummary(message, "unmarkings", resourceType, janitor.getUnmarkedResources(), janitor.getRegion(), "orange");
                 appendSummary(message, "cleanups", resourceType, janitor.getCleanedResources(), janitor.getRegion(), "green");
@@ -219,21 +217,6 @@ public class BasicJanitorMonkey extends JanitorMonkey {
         }
     }
 
-// SOON TO REMOVE! sample code for the CSV generation, already integrated into the functions to generate the summary emails but left for reference
-
-//	private void generateCSV(Collection<Resource> resources) {
-//		CSVWriter writer = new CSVWriter(new FileWriter("janitormonkey-grindr-preprod.csv"), ',');
-//
-//		if (resources != null && resources.size() != 0) {
-//		        for (Resource r : resources) {
-//
-//		String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),
-//			r.getTag("atlas_environment"),r.getTag("atlas_zone")};
-//			writer.writeNext(resourceData);
-//			}
-//		}
-//	}
-
     private void appendSummary(StringBuilder message, String summaryName,
 	        ResourceType resourceType, Collection<Resource> resources, String janitorRegion, String color) {
 	        message.append(String.format("<h3>Total <font color='%s'>%s</font> for %s = <b>%d</b> in region %s</h3>",
@@ -242,13 +225,10 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		try {
 			writer = new CSVWriter(new FileWriter("csv/" + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
 		} catch (IOException ioexception) { ioexception.printStackTrace(); System.exit(1); }
-		// CSV file header generation
-
-		String[] resourceDataHeader = {"Resource ID","name","atlas_owner","atlas_email","atlas_environment","Atlas Zone"};
+		String[] resourceDataHeader = {"Resource ID","Name","Atlas Owner",
+			"Atlas Email","Atlas Environment","Atlas Zone"};
 		writer.writeNext(resourceDataHeader);
-
 		message.append("<table border='2' cellpadding='4'><tr>");
-
 	    	for (String resource : resourceDataHeader) {
 			message.append(String.format("<td bgcolor='grey'>%s</td>", resource));
 		}
@@ -257,48 +237,21 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 
     private String printResources(Collection<Resource> resources, CSVWriter writer) {
         StringBuilder sb = new StringBuilder();
-
 	if (resources != null && resources.size() != 0) {
 	        for (Resource r : resources) {
-
 	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),
 			r.getTag("atlas_owner")+"@grindr.com",r.getTag("atlas_environment"),r.getTag("atlas_zone")};
 		    writer.writeNext(resourceData);
-
 		    sb.append("<tr>");
 		    for (String resource : resourceData) {
 			sb.append("<td>"+resource+"</td>");
 		    }
 		    sb.append("</tr>");
-
-		    // table generation
-//	            sb.append("<tr><td>"+r.getId()+"</td>");
-//	            sb.append("<td>"+r.getTag("Name")+"</td>");
-//	            sb.append("<td>"+r.getTag("atlas_owner")+"</td>");
-// TEST	            sb.append("<td>"+r.getAdditionalField("ASG_NAME")+"</td>");
-//		    if (r.getTag("atlas_owner") != null) {
-//	            	sb.append("<td>"+r.getTag("atlas_owner")+"@grindr.com</td>");
-//		    } else {
-//		    	sb.append("<td><font color='red'>Invalid</font></td>");
-//		    }
-//	            sb.append("<td>"+r.getTag("atlas_environment")+"</td>");
-//	            sb.append("<td>"+r.getTag("atlas_zone")+"</td></tr>");
-
-
-
-
-		    // CSV body generation
-//	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),r.getTag("atlas_environment"),r.getTag("atlas_zone")};
 	        }
 	} else {
 		sb.append("-- No resources to list --");
 	}
-	try {
-// pack 'er up!
-		writer.close();
-	} catch (IOException ioexception) {
-		ioexception.printStackTrace(); System.exit(1); 
-	}
+	try { writer.close();} catch (IOException ioexception) {ioexception.printStackTrace(); System.exit(1);}
 	sb.append("</table>");
         return sb.toString();
     }
