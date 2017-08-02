@@ -36,6 +36,10 @@ import com.opencsv.CSVWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.File;
+import java.sql.Timestamp;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.text.DateFormat;
 
 //S3 Bucket Upload
 import com.amazonaws.services.s3.AmazonS3;
@@ -45,13 +49,17 @@ import com.amazonaws.AmazonServiceException;
 /** The basic implementation of Janitor Monkey. */
 public class BasicJanitorMonkey extends JanitorMonkey {
 
+	Date date = new Date();
+	long timeStamp = date.getTime();
+	String fileDir = "csv/"+timeStamp+"/";
+
     /** The Constant LOGGER. */
     private static final Logger LOGGER = LoggerFactory.getLogger(BasicJanitorMonkey.class);
 
     /** The Constant NS. */
     private static final String NS = "simianarmy.janitor.";
 
-    /** The cfg. */
+    /** 	The cfg. */
     private final MonkeyConfiguration cfg;
 
     private final List<AbstractJanitor> janitors;
@@ -61,7 +69,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
     private final String region;
 
     private final String accountName;
-
+	
     private final JanitorResourceTracker resourceTracker;
 
     private final MonkeyRecorder recorder;
@@ -212,22 +220,10 @@ public class BasicJanitorMonkey extends JanitorMonkey {
             StringBuilder message = new StringBuilder();
 	    // Email Header
 
-	File dir = new File("csv/"+timestamp+"/");
-
-	    // attempt to create the directory here
-    	boolean successful = dir.mkdir();
-    	if (successful)
-    	{
-      // creating the directory succeeded
-      System.out.println("directory was created successfully");
-    }
-    else
-    {
-      // creating the directory failed
-      System.out.println("failed trying to create the directory");
-    }
-
 	    // make directory
+	    File dir = new File("csv/"+timeStamp+"/");
+	    // attempt to create the directory here
+   	    dir.mkdir();
 
             message.append("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>");
 	    // Email Body
@@ -239,7 +235,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 appendSummary(message, "failures", resourceType, janitor.getFailedToCleanResources(), janitor.getRegion(), "red");
             }
 	    // Email Footer
-	    message.append(String.format("Timestamp:%s<br>URL:%s<br>http://www.google.com/", timeStamp)
+	    message.append(String.format("Timestamp:%s<br>URL:%s<br>https://github.com/Netflix/SimianArmy/wiki", timeStamp, fileDir));
 
             String subject = getSummaryEmailSubject();
             emailNotifier.sendEmail(summaryEmailTarget, subject, message.toString());
@@ -252,10 +248,10 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 color, summaryName, resourceType.name(), resources.size(), janitorRegion));
 		CSVWriter writer = null;
 		try {
-			writer = new CSVWriter(new FileWriter("csv/" + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
+			writer = new CSVWriter(new FileWriter(fileDir + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
 		} catch (IOException ioexception) { ioexception.printStackTrace(); System.exit(1); }
 		String[] resourceDataHeader = {"Resource ID","Name","Atlas Owner",
-			"Atlas Email","Atlas Environment","Atlas Zone"};
+			"Atlas Email","Atlas Environment","Atlas Zone","Termination Reason","Launch Time"};
 		writer.writeNext(resourceDataHeader);
 		message.append("<table border='2' cellpadding='4'><tr>");
 	    	for (String resource : resourceDataHeader) {
@@ -268,12 +264,17 @@ public class BasicJanitorMonkey extends JanitorMonkey {
         StringBuilder sb = new StringBuilder();
 	if (resources != null && resources.size() != 0) {
 	        for (Resource r : resources) {
+		    DateFormat df = new SimpleDateFormat("HH:mm:ss MM/dd/yyyy");
+		    String launchTime = df.format(r.getLaunchTime());
 	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),
-			r.getTag("atlas_owner")+"@grindr.com",r.getTag("atlas_environment"),r.getTag("atlas_zone")};
+			r.getTag("atlas_owner")+"@grindr.com",r.getTag("atlas_environment"),r.getTag("atlas_zone"),
+			r.getTerminationReason(),launchTime};
 		    writer.writeNext(resourceData);
 		    sb.append("<tr>");
+		    String color = "black";
 		    for (String resource : resourceData) {
-			sb.append("<td>"+resource+"</td>");
+			if ( resource != null ) { color = "black"; } else { color = "red"; }
+			sb.append(String.format("<td><font color='%s'>%s</font></td>", color, resource));
 		    }
 		    sb.append("</tr>");
 	        }
