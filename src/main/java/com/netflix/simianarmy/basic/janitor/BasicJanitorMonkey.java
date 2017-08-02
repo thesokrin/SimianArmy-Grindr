@@ -35,6 +35,12 @@ import org.slf4j.LoggerFactory;
 import com.opencsv.CSVWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.File;
+
+//S3 Bucket Upload
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.AmazonServiceException;
 
 /** The basic implementation of Janitor Monkey. */
 public class BasicJanitorMonkey extends JanitorMonkey {
@@ -105,12 +111,12 @@ public class BasicJanitorMonkey extends JanitorMonkey {
             LOGGER.info(String.format("Marking resources with %d janitors.", janitors.size()));
             monkeyRuns.incrementAndGet();
             monkeyRunning.set(1);
-            
+
             // prepare to run, this just resets the counts so monitoring is sane
             for (AbstractJanitor janitor : janitors) {
             	janitor.prepareToRun();
             }
-            
+
             for (AbstractJanitor janitor : janitors) {
                 LOGGER.info(String.format("Running %s janitor for region %s", janitor.getResourceType(), janitor.getRegion()));
                 try {
@@ -204,7 +210,27 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 return;
             }
             StringBuilder message = new StringBuilder();
-            message.append(String.format("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>"));
+	    // Email Header
+
+	File dir = new File("csv/"+timestamp+"/");
+
+	    // attempt to create the directory here
+    	boolean successful = dir.mkdir();
+    	if (successful)
+    	{
+      // creating the directory succeeded
+      System.out.println("directory was created successfully");
+    }
+    else
+    {
+      // creating the directory failed
+      System.out.println("failed trying to create the directory");
+    }
+
+	    // make directory
+
+            message.append("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>");
+	    // Email Body
             for (AbstractJanitor janitor : janitors) {
                 ResourceType resourceType = janitor.getResourceType();
                 appendSummary(message, "markings", resourceType, janitor.getMarkedResources(), janitor.getRegion(), "blue");
@@ -212,6 +238,9 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 appendSummary(message, "cleanups", resourceType, janitor.getCleanedResources(), janitor.getRegion(), "green");
                 appendSummary(message, "failures", resourceType, janitor.getFailedToCleanResources(), janitor.getRegion(), "red");
             }
+	    // Email Footer
+	    message.append(String.format("Timestamp:%s<br>URL:%s<br>http://www.google.com/", timeStamp)
+
             String subject = getSummaryEmailSubject();
             emailNotifier.sendEmail(summaryEmailTarget, subject, message.toString());
         }
@@ -252,6 +281,17 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		sb.append("-- No resources to list --");
 	}
 	try { writer.close();} catch (IOException ioexception) {ioexception.printStackTrace(); System.exit(1);}
+
+//	    final AmazonS3 s3 = AmazonS3ClientBuilder.defaultClient();
+//	    try {
+//		s3.putObject(bucket_name, key_name, file_path);
+//	    } catch (AmazonServiceException e) {
+//		System.err.println(e.getErrorMessage());
+//  		System.exit(1);
+//	    }
+
+
+
 	sb.append("</table>");
         return sb.toString();
     }
