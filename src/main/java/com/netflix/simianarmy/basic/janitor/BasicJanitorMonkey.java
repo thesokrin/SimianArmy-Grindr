@@ -243,15 +243,16 @@ public class BasicJanitorMonkey extends JanitorMonkey {
     }
 
     private void appendSummary(StringBuilder message, String summaryName,
-	        ResourceType resourceType, Collection<Resource> resources, String janitorRegion, String color) {
-	        message.append(String.format("<h3>Total <font color='%s'>%s</font> for %s = <b>%d</b> in region %s</h3>",
-                color, summaryName, resourceType.name(), resources.size(), janitorRegion));
+	        	ResourceType resourceType, Collection<Resource> resources, String janitorRegion, String color) {
+        	message.append(String.format("<h3>Total <font color='%s'>%s</font> for %s = <b>%d</b> in region %s</h3>",
+               	color, summaryName, resourceType.name(), resources.size(), janitorRegion));
 		CSVWriter writer = null;
 		try {
 			writer = new CSVWriter(new FileWriter(fileDir + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
 		} catch (IOException ioexception) { ioexception.printStackTrace(); System.exit(1); }
+		// TABLE COLUMN NAMES
 		String[] resourceDataHeader = {"Resource ID","Name","Atlas Owner",
-			"Atlas Email","Atlas Environment","Atlas Zone","Termination Reason","Launch Time"};
+		  "Atlas Email","Atlas Environment","Atlas Zone","Termination Reason","Launch Time","Termination Time"};
 		writer.writeNext(resourceDataHeader);
 		message.append("<table border='2' cellpadding='4'><tr>");
 	    	for (String resource : resourceDataHeader) {
@@ -260,15 +261,22 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		message.append(String.format("</tr>%s", printResources(resources, writer)));
     }
 
+String bucket_name = "";
+String key_name = "";
+String file_name ="";
+
     private String printResources(Collection<Resource> resources, CSVWriter writer) {
         StringBuilder sb = new StringBuilder();
 	if (resources != null && resources.size() != 0) {
 	        for (Resource r : resources) {
-		    DateFormat df = new SimpleDateFormat("HH:mm:ss MM/dd/yyyy");
-		    String launchTime = df.format(r.getLaunchTime());
+		    //DateFormat df = new SimpleDateFormat("HH:mm:ss MM/dd/yyyy");
+		    //String launchTime = df.format(r.getLaunchTime());
+		    String launchTime = r.getLaunchTime().toString();
+		    String expectedTerminationTime = r.getExpectedTerminationTime().toString();
+		    // TABLE VALUES
 	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),
-			r.getTag("atlas_owner")+"@grindr.com",r.getTag("atlas_environment"),r.getTag("atlas_zone"),
-			r.getTerminationReason(),launchTime};
+		      r.getTag("atlas_owner")+"@grindr.com",r.getTag("atlas_environment"),r.getTag("atlas_zone"),
+		      r.getTerminationReason(),launchTime,expectedTerminationTime};
 		    writer.writeNext(resourceData);
 		    sb.append("<tr>");
 		    String color = "black";
@@ -279,7 +287,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		    sb.append("</tr>");
 	        }
 	} else {
-		sb.append("-- No resources to list --");
+		sb.append("-No resources to list-");
 	}
 	try { writer.close();} catch (IOException ioexception) {ioexception.printStackTrace(); System.exit(1);}
 
@@ -290,8 +298,6 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 //		System.err.println(e.getErrorMessage());
 //  		System.exit(1);
 //	    }
-
-
 
 	sb.append("</table>");
         return sb.toString();
