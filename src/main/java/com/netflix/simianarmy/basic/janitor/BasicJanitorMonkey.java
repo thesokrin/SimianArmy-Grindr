@@ -219,12 +219,8 @@ public class BasicJanitorMonkey extends JanitorMonkey {
             }
             StringBuilder message = new StringBuilder();
 	    // Email Header
-
-	    // make directory
 	    File dir = new File("csv/"+timeStamp+"/");
-	    // attempt to create the directory here
-   	    dir.mkdir();
-
+	    dir.mkdir();
             message.append("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>");
 	    // Email Body
             for (AbstractJanitor janitor : janitors) {
@@ -247,12 +243,20 @@ public class BasicJanitorMonkey extends JanitorMonkey {
         	message.append(String.format("<h3>Total <font color='%s'>%s</font> for %s = <b>%d</b> in region %s</h3>",
                	color, summaryName, resourceType.name(), resources.size(), janitorRegion));
 		CSVWriter writer = null;
+		// make directory
+		File dir = new File("csv/"+timeStamp+"/"+janitorRegion+"/");
+		dir.mkdir();
+//		File dir = new File("csv/"+timeStamp+"/"+janitorRegion+"/");
+		// attempt to create the directory here
+		// open csv file for writing
 		try {
-			writer = new CSVWriter(new FileWriter(fileDir + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
+			writer = new CSVWriter(new FileWriter(dir.toString() + "/" + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
 		} catch (IOException ioexception) { ioexception.printStackTrace(); System.exit(1); }
 		// TABLE COLUMN NAMES
-		String[] resourceDataHeader = {"Resource ID","Name","Atlas Owner",
-		  "Atlas Email","Atlas Environment","Atlas Zone","Termination Reason","Launch Time","Termination Time"};
+		String[] resourceDataHeader = {"Resource ID","Name","Project Owner","Atlas Owner",
+						"Atlas Email","Atlas Environment",
+		  				"Atlas Zone","Termination Reason",
+						"Launch Time","Termination Time"};
 		writer.writeNext(resourceDataHeader);
 		message.append("<table border='2' cellpadding='4'><tr>");
 	    	for (String resource : resourceDataHeader) {
@@ -261,22 +265,21 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		message.append(String.format("</tr>%s", printResources(resources, writer)));
     }
 
+//pull these from the properties file eventually along with data storage/distribution options for csv files
 String bucket_name = "";
 String key_name = "";
-String file_name ="";
+String file_name = "";
 
     private String printResources(Collection<Resource> resources, CSVWriter writer) {
         StringBuilder sb = new StringBuilder();
 	if (resources != null && resources.size() != 0) {
 	        for (Resource r : resources) {
-		    //DateFormat df = new SimpleDateFormat("HH:mm:ss MM/dd/yyyy");
-		    //String launchTime = df.format(r.getLaunchTime());
-		    String launchTime = r.getLaunchTime().toString();
-		    String expectedTerminationTime = r.getExpectedTerminationTime().toString();
+		// add region to directory structure
 		    // TABLE VALUES
-	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("atlas_owner"),
-		      r.getTag("atlas_owner")+"@grindr.com",r.getTag("atlas_environment"),r.getTag("atlas_zone"),
-		      r.getTerminationReason(),launchTime,expectedTerminationTime};
+	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("project_owner"),r.getTag("atlas_owner"),
+						r.getTag("project_owner")+"@grindr.com",r.getTag("atlas_environment"),
+						r.getTag("atlas_zone"),r.getTerminationReason(),
+						r.getLaunchTime().toString(),r.getExpectedTerminationTime().toString()};
 		    writer.writeNext(resourceData);
 		    sb.append("<tr>");
 		    String color = "black";
