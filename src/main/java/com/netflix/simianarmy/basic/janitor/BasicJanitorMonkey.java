@@ -206,6 +206,11 @@ public class BasicJanitorMonkey extends JanitorMonkey {
         return evt;
     }
 
+//pull these from the properties file eventually along with data storage/distribution options for csv files
+String bucket_name = "";
+String key_name = "";
+String file_name = "";
+
     /**
      * Send a summary email with about the last run of the janitor monkey.
      */
@@ -231,7 +236,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 appendSummary(message, "failures", resourceType, janitor.getFailedToCleanResources(), janitor.getRegion(), "red");
             }
 	    // Email Footer
-	    message.append(String.format("Timestamp:%s<br>URL:%s<br>https://github.com/Netflix/SimianArmy/wiki", timeStamp, fileDir));
+	    message.append(String.format("<br>Timestamp:%s<br>Root URL:%s<br>https://github.com/Netflix/SimianArmy/wiki", timeStamp, fileDir));
 
             String subject = getSummaryEmailSubject();
             emailNotifier.sendEmail(summaryEmailTarget, subject, message.toString());
@@ -246,7 +251,10 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		// make directory
 		File dir = new File("csv/"+timeStamp+"/"+janitorRegion+"/");
 		dir.mkdir();
-//		File dir = new File("csv/"+timeStamp+"/"+janitorRegion+"/");
+		String fileName = dir.toString() + "/" + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv";
+		String csvUrl = "http://"+bucket_name+"/"+ fileName;
+		// insert url to csv for following table
+		message.append(String.format("<a href='%s'>CSV file for %s %s</a><br><br>", csvUrl, resourceType.name(), summaryName));
 		// attempt to create the directory here
 		// open csv file for writing
 		try {
@@ -265,11 +273,6 @@ public class BasicJanitorMonkey extends JanitorMonkey {
 		message.append(String.format("</tr>%s", printResources(resources, writer)));
     }
 
-//pull these from the properties file eventually along with data storage/distribution options for csv files
-String bucket_name = "";
-String key_name = "";
-String file_name = "";
-
     private String printResources(Collection<Resource> resources, CSVWriter writer) {
         StringBuilder sb = new StringBuilder();
 	if (resources != null && resources.size() != 0) {
@@ -277,7 +280,7 @@ String file_name = "";
 		// add region to directory structure
 		    // TABLE VALUES
 	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("project_owner"),r.getTag("atlas_owner"),
-						r.getTag("project_owner")+"@grindr.com",r.getTag("atlas_environment"),
+						r.getTag("atlas_owner")+"@grindr.com",r.getTag("atlas_environment"),
 						r.getTag("atlas_zone"),r.getTerminationReason(),
 						r.getLaunchTime().toString(),r.getExpectedTerminationTime().toString()};
 		    writer.writeNext(resourceData);
