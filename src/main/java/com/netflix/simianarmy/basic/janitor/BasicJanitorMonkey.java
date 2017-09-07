@@ -32,9 +32,26 @@ import com.netflix.simianarmy.janitor.JanitorResourceTracker;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.opencsv.CSVWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.File;
+import java.sql.Timestamp;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.text.DateFormat;
+
+//S3 Bucket Upload
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.AmazonServiceException;
 
 /** The basic implementation of Janitor Monkey. */
 public class BasicJanitorMonkey extends JanitorMonkey {
+
+	Date date = new Date();
+	long timeStamp = date.getTime();
+	String fileDir = "csv/"+timeStamp+"/";
 
     /** The Constant LOGGER. */
     private static final Logger LOGGER = LoggerFactory.getLogger(BasicJanitorMonkey.class);
@@ -42,7 +59,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
     /** The Constant NS. */
     private static final String NS = "simianarmy.janitor.";
 
-    /** The cfg. */
+    /** 	The cfg. */
     private final MonkeyConfiguration cfg;
 
     private final List<AbstractJanitor> janitors;
@@ -52,7 +69,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
     private final String region;
 
     private final String accountName;
-
+	
     private final JanitorResourceTracker resourceTracker;
 
     private final MonkeyRecorder recorder;
@@ -102,12 +119,12 @@ public class BasicJanitorMonkey extends JanitorMonkey {
             LOGGER.info(String.format("Marking resources with %d janitors.", janitors.size()));
             monkeyRuns.incrementAndGet();
             monkeyRunning.set(1);
-            
+
             // prepare to run, this just resets the counts so monitoring is sane
             for (AbstractJanitor janitor : janitors) {
             	janitor.prepareToRun();
             }
-            
+
             for (AbstractJanitor janitor : janitors) {
                 LOGGER.info(String.format("Running %s janitor for region %s", janitor.getResourceType(), janitor.getRegion()));
                 try {
@@ -125,7 +142,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
             if (!cfg.getBoolOrElse("simianarmy.janitor.leashed", true)) {
                 emailNotifier.sendNotifications();
             } else {
-                LOGGER.info("Janitor Monkey is leashed, no notification is sent.");
+		LOGGER.info("Janitor Monkey is leashed, no notification is sent.");
             }
 
             LOGGER.info(String.format("Cleaning resources with %d janitors.", janitors.size()));
@@ -142,6 +159,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                         janitor.getFailedToCleanResources().size(), janitor.getResourceType()));
             }
             if (cfg.getBoolOrElse(NS + "summaryEmail.enabled", true)) {
+	    	LOGGER.info("Janitor Monkey is generating a summary email....");
                 sendJanitorSummaryEmail();
             }
         	monkeyRunning.set(0);
@@ -188,6 +206,11 @@ public class BasicJanitorMonkey extends JanitorMonkey {
         return evt;
     }
 
+//pull these from the properties file eventually along with data storage/distribution options for csv files
+String bucket_name = "";
+String key_name = "";
+String file_name = "";
+
     /**
      * Send a summary email with about the last run of the janitor monkey.
      */
@@ -200,37 +223,89 @@ public class BasicJanitorMonkey extends JanitorMonkey {
                 return;
             }
             StringBuilder message = new StringBuilder();
+	    // Email Header
+	    File dir = new File("csv/"+timeStamp+"/");
+	    dir.mkdir();
+            message.append("<center><img height='150' src='http://www.silverelitez.org/jm.jpg'><br>");
+	    // Email Body
             for (AbstractJanitor janitor : janitors) {
                 ResourceType resourceType = janitor.getResourceType();
-                appendSummary(message, "markings", resourceType, janitor.getMarkedResources(), janitor.getRegion());
-                appendSummary(message, "unmarkings", resourceType, janitor.getUnmarkedResources(), janitor.getRegion());
-                appendSummary(message, "cleanups", resourceType, janitor.getCleanedResources(), janitor.getRegion());
-                appendSummary(message, "cleanup failures", resourceType, janitor.getFailedToCleanResources(),
-                        janitor.getRegion());
+                appendSummary(message, "markings", resourceType, janitor.getMarkedResources(), janitor.getRegion(), "blue");
+                appendSummary(message, "unmarkings", resourceType, janitor.getUnmarkedResources(), janitor.getRegion(), "orange");
+                appendSummary(message, "cleanups", resourceType, janitor.getCleanedResources(), janitor.getRegion(), "green");
+                appendSummary(message, "failures", resourceType, janitor.getFailedToCleanResources(), janitor.getRegion(), "red");
             }
+	    // Email Footer
+	    message.append(String.format("<br>Timestamp:%s<br>Root URL:%s<br>https://github.com/Netflix/SimianArmy/wiki", timeStamp, fileDir));
+
             String subject = getSummaryEmailSubject();
             emailNotifier.sendEmail(summaryEmailTarget, subject, message.toString());
         }
     }
 
     private void appendSummary(StringBuilder message, String summaryName,
-            ResourceType resourceType, Collection<Resource> resources, String janitorRegion) {
-        message.append(String.format("Total %s for %s = %d in region %s<br/>",
-                summaryName, resourceType.name(), resources.size(), janitorRegion));
-        message.append(String.format("List: %s<br/>", printResources(resources)));
+	        	ResourceType resourceType, Collection<Resource> resources, String janitorRegion, String color) {
+        	message.append(String.format("<h3>Total <font color='%s'>%s</font> for %s = <b>%d</b> in region %s</h3>",
+               	color, summaryName, resourceType.name(), resources.size(), janitorRegion));
+		CSVWriter writer = null;
+		// make directory
+		File dir = new File("csv/"+timeStamp+"/"+janitorRegion+"/");
+		dir.mkdir();
+		String fileName = dir.toString() + "/" + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv";
+		String csvUrl = "http://"+bucket_name+"/"+ fileName;
+		// insert url to csv for following table
+		message.append(String.format("<a href='%s'>CSV file for %s %s</a><br><br>", csvUrl, resourceType.name(), summaryName));
+		// attempt to create the directory here
+		// open csv file for writing
+		try {
+			writer = new CSVWriter(new FileWriter(dir.toString() + "/" + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv"), ',');
+		} catch (IOException ioexception) { ioexception.printStackTrace(); System.exit(1); }
+		// TABLE COLUMN NAMES
+		String[] resourceDataHeader = {"Resource ID","Name","Project Owner","Atlas Owner",
+						"Atlas Email","Atlas Environment",
+		  				"Atlas Zone","Termination Reason",
+						"Launch Time","Termination Time"};
+		writer.writeNext(resourceDataHeader);
+		message.append("<table border='2' cellpadding='4'><tr>");
+	    	for (String resource : resourceDataHeader) {
+			message.append(String.format("<td bgcolor='grey'>%s</td>", resource));
+		}
+		message.append(String.format("</tr>%s", printResources(resources, writer)));
     }
 
-    private String printResources(Collection<Resource> resources) {
+    private String printResources(Collection<Resource> resources, CSVWriter writer) {
         StringBuilder sb = new StringBuilder();
-        boolean isFirst = true;
-        for (Resource r : resources) {
-            if (!isFirst) {
-                sb.append(",");
-            } else {
-                isFirst = false;
-            }
-            sb.append(r.getId());
-        }
+	if (resources != null && resources.size() != 0) {
+	        for (Resource r : resources) {
+		// add region to directory structure
+		    // TABLE VALUES
+	   	    String[] resourceData = {r.getId(),r.getTag("Name"),r.getTag("project_owner"),r.getTag("atlas_owner"),
+						r.getTag("atlas_owner")+"@grindr.com",r.getTag("atlas_environment"),
+						r.getTag("atlas_zone"),r.getTerminationReason(),
+						r.getLaunchTime().toString(),r.getExpectedTerminationTime().toString()};
+		    writer.writeNext(resourceData);
+		    sb.append("<tr>");
+		    String color = "black";
+		    for (String resource : resourceData) {
+			if ( resource != null ) { color = "black"; } else { color = "red"; }
+			sb.append(String.format("<td><font color='%s'>%s</font></td>", color, resource));
+		    }
+		    sb.append("</tr>");
+	        }
+	} else {
+		sb.append("-No resources to list-");
+	}
+	try { writer.close();} catch (IOException ioexception) {ioexception.printStackTrace(); System.exit(1);}
+
+//	    final AmazonS3 s3 = AmazonS3ClientBuilder.defaultClient();
+//	    try {
+//		s3.putObject(bucket_name, key_name, file_path);
+//	    } catch (AmazonServiceException e) {
+//		System.err.println(e.getErrorMessage());
+//  		System.exit(1);
+//	    }
+
+	sb.append("</table>");
         return sb.toString();
     }
 
@@ -264,8 +339,7 @@ public class BasicJanitorMonkey extends JanitorMonkey {
         }
         LOGGER.info("JanitorMonkey disabled, set {}=true", prop);
         return false;
-    }
-    
+    }    
     @Monitor(name="runs", type=DataSourceType.COUNTER)
     public long getMonkeyRuns() {
       return monkeyRuns.get();
@@ -280,5 +354,4 @@ public class BasicJanitorMonkey extends JanitorMonkey {
     public long getMonkeyRunning() {
       return monkeyRunning.get();
     }
-    
 }
