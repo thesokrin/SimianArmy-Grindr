@@ -254,7 +254,7 @@ String file_name = "";
 		String fileName = dir.toString() + "/" + summaryName + "-" + resourceType.name() + "-janitormonkey-grindr-preprod.csv";
 		String csvUrl = "http://"+bucket_name+"/"+ fileName;
 		// insert url to csv for following table
-		message.append(String.format("<a href='%s'>CSV file for %s %s</a><br><br>", csvUrl, resourceType.name(), summaryName));
+		//message.append(String.format("<a href='%s'>CSV file for %s %s</a><br><br>", csvUrl, resourceType.name(), summaryName));
 		// attempt to create the directory here
 		// open csv file for writing
 		try {
